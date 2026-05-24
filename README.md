@@ -65,6 +65,20 @@ scripts/
   bootstrap-users.mjs     ← creates the 10 demo auth users via service role
 ```
 
+## Quick Start (local mode — no setup)
+
+The app ships with an embedded Postgres (`@electric-sql/pglite`) so you can run it without any external service:
+
+```bash
+npm install
+npm run dev
+# → http://localhost:3000
+```
+
+On first request the in-memory database initializes the schema and seed (~40 assets, 10 demo users) automatically. Data lives in the running process and resets on server restart — perfect for demos and iteration. Sign in with any of the demo accounts below.
+
+> The `.env.local` shipped with the repo has placeholder Supabase URLs, which triggers local mode. To connect to a real Supabase project, replace those values with real credentials and follow the section below.
+
 ## Setting Up Supabase
 
 ### Option A — Supabase Cloud (recommended for demo)
