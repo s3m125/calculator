@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Boxes,
   LayoutDashboard,
   Package,
   UserCog,
@@ -16,7 +15,10 @@ import {
   Receipt,
   Trash2,
   Inbox,
+  LogOut,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -43,15 +45,30 @@ const NAV: NavItem[] = [
 
 interface SidebarProps {
   capabilities: string[];
+  user: { name: string; roleLabel: string };
   open: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ capabilities, open, onClose }: SidebarProps) {
+export function Sidebar({ capabilities, user, open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const caps = new Set(capabilities);
-
   const items = NAV.filter((n) => !n.capability || caps.has(n.capability));
+
+  const initials = user.name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <>
@@ -65,20 +82,27 @@ export function Sidebar({ capabilities, open, onClose }: SidebarProps) {
       />
       <aside
         className={cn(
-          "fixed lg:sticky top-0 z-40 h-screen w-64 shrink-0 bg-white border-r border-slate-200 transition-transform lg:translate-x-0",
+          "fixed lg:sticky top-0 z-40 h-screen w-60 shrink-0 bg-white border-r border-slate-200/70 transition-transform lg:translate-x-0 flex flex-col",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="h-16 px-5 flex items-center gap-2.5 border-b border-slate-200">
-          <div className="h-9 w-9 rounded-lg bg-brand-600 text-white flex items-center justify-center">
-            <Boxes className="h-5 w-5" />
+        {/* Brand */}
+        <div className="h-20 px-5 pt-5 pb-3 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-sm">
+            <span className="font-bold text-lg leading-none tracking-tight">GSi</span>
           </div>
           <div className="leading-tight">
-            <div className="font-bold text-slate-900">GSI Asset</div>
-            <div className="text-[11px] text-slate-500 -mt-0.5">Control System</div>
+            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
+              Asset
+            </div>
+            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.18em] -mt-0.5">
+              Control
+            </div>
           </div>
         </div>
-        <nav className="p-3 space-y-0.5 overflow-y-auto h-[calc(100vh-4rem)]">
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           {items.map((item) => {
             const Icon = item.icon;
             const active =
@@ -92,16 +116,36 @@ export function Sidebar({ capabilities, open, onClose }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition",
                   active
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-indigo-600" : "text-slate-400")} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
+
+        {/* User profile card */}
+        <div className="m-3 mt-2">
+          <div className="rounded-xl bg-slate-50 border border-slate-200/70 px-3 py-2.5 flex items-center gap-3">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+              {initials || "U"}
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="text-sm font-semibold text-slate-900 truncate">{user.name}</div>
+              <div className="text-[11px] text-slate-500 truncate">{user.roleLabel}</div>
+            </div>
+            <button
+              onClick={signOut}
+              title="Sign out"
+              className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   );

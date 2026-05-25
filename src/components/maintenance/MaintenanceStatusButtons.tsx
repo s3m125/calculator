@@ -50,7 +50,7 @@ export function MaintenanceStatusButtons({
             className={
               "px-3 py-1.5 rounded-lg text-sm font-medium transition " +
               (isCurrent
-                ? "bg-brand-600 text-white"
+                ? "bg-indigo-600 text-white"
                 : sIdx < idx
                   ? "bg-slate-100 text-slate-500"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200")

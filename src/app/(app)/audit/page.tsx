@@ -73,7 +73,7 @@ export default async function AuditPage() {
                     <td className="text-right tabular-nums text-rose-700">{issues}</td>
                     <td><StatusBadge status={r.status} /></td>
                     <td>
-                      <Link href={`/audit/${r.id}`} className="text-xs text-brand-600 hover:underline">
+                      <Link href={`/audit/${r.id}`} className="text-xs text-indigo-600 hover:underline">
                         Open
                       </Link>
                     </td>

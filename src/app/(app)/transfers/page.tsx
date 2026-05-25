@@ -84,7 +84,7 @@ export default async function TransfersPage() {
                 <tr key={r.id}>
                   <td>
                     {r.asset_uuid ? (
-                      <Link href={`/assets/${r.asset_uuid}`} className="font-medium hover:text-brand-600">
+                      <Link href={`/assets/${r.asset_uuid}`} className="font-medium hover:text-indigo-600">
                         {r.asset_name}
                       </Link>
                     ) : (

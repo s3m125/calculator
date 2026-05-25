@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus, Download, QrCode } from "lucide-react";
+import { Plus, QrCode } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { CategoryThumb } from "@/components/ui/CategoryThumb";
 import { AssetFilters } from "@/components/assets/AssetFilters";
 import { ExportButton } from "@/components/ExportButton";
 import { formatDate, formatIDR } from "@/lib/utils";
@@ -104,7 +105,7 @@ export default async function AssetsPage({
 
       <div className="card overflow-x-auto mt-4">
         <table className="table w-full min-w-[1100px]">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50/70">
             <tr>
               <th>Asset</th>
               <th>Category</th>
@@ -128,14 +129,19 @@ export default async function AssetsPage({
             {rows.map((a) => (
               <tr key={a.id}>
                 <td>
-                  <Link
-                    href={`/assets/${a.id}`}
-                    className="font-medium text-slate-900 hover:text-brand-600"
-                  >
-                    {a.name}
-                  </Link>
-                  <div className="text-xs text-slate-500 font-mono">
-                    {a.asset_id} {a.serial_number ? `· ${a.serial_number}` : ""}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CategoryThumb assetId={a.asset_id} />
+                    <div className="min-w-0">
+                      <Link
+                        href={`/assets/${a.id}`}
+                        className="font-medium text-slate-900 hover:text-indigo-600 truncate block"
+                      >
+                        {a.name}
+                      </Link>
+                      <div className="text-xs text-slate-400 font-mono truncate">
+                        {a.asset_id}{a.serial_number ? ` · ${a.serial_number}` : ""}
+                      </div>
+                    </div>
                   </div>
                 </td>
                 <td>{a.category_name ?? "-"}</td>
@@ -148,7 +154,7 @@ export default async function AssetsPage({
                 <td>
                   <Link
                     href={`/assets/${a.id}/qr`}
-                    className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline"
                   >
                     <QrCode className="h-3.5 w-3.5" /> QR
                   </Link>

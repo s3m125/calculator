@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --bg: #f6f7f9;
 }
 
 html, body {
@@ -12,22 +13,23 @@ html, body {
 
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
+  background-color: var(--bg);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Reusable bits */
 .card {
-  @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+  @apply bg-white rounded-xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)];
 }
 .btn {
   @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition;
 }
 .btn-primary {
-  @apply btn bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed;
+  @apply btn bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed;
 }
 .btn-secondary {
-  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  @apply btn bg-white border border-slate-200 text-slate-700 hover:bg-slate-50;
 }
 .btn-ghost {
   @apply btn bg-transparent text-slate-700 hover:bg-slate-100;
@@ -35,8 +37,8 @@ body {
 .input,
 .select,
 .textarea {
-  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm
-         focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200;
+  @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm
+         focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200;
 }
 .label {
   @apply text-xs font-medium text-slate-600 uppercase tracking-wide;
@@ -48,7 +50,7 @@ body {
   @apply px-4 py-3 text-sm text-slate-700 align-middle;
 }
 .table tbody tr {
-  @apply border-t border-slate-100 hover:bg-slate-50;
+  @apply border-t border-slate-100 hover:bg-slate-50/60;
 }
 .badge {
   @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;

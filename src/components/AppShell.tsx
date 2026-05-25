@@ -18,6 +18,7 @@ export function AppShell({ userName, roleName, capabilities, children }: AppShel
     <div className="min-h-screen flex bg-slate-50">
       <Sidebar
         capabilities={capabilities}
+        user={{ name: userName, roleLabel: roleName }}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -27,7 +28,7 @@ export function AppShell({ userName, roleName, capabilities, children }: AppShel
           roleName={roleName}
           onOpenSidebar={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 p-4 lg:p-6 min-w-0">{children}</main>
+        <main className="flex-1 px-4 lg:px-8 py-6 min-w-0">{children}</main>
       </div>
     </div>
   );

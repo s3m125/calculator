@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
       <div className="w-full max-w-md card p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-12 w-12 rounded-xl bg-brand-600 text-white flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
             <Boxes className="h-7 w-7" />
           </div>
           <div>

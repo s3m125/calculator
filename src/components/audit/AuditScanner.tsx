@@ -127,7 +127,7 @@ export function AuditScanner({ auditId, expectedLocationId }: Props) {
               className={
                 "px-3 py-2 rounded-lg text-sm font-medium border " +
                 (result === r.value
-                  ? "border-brand-500 ring-2 ring-brand-200 " + r.tone
+                  ? "border-indigo-500 ring-2 ring-indigo-200 " + r.tone
                   : "border-slate-200 bg-white hover:bg-slate-50")
               }
             >

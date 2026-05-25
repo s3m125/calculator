@@ -112,7 +112,7 @@ export default async function AssetDetailPage({ params }: { params: { id: string
             const user = a.user as unknown as { full_name: string } | null;
             const project = a.project as unknown as { name: string } | null;
             return (
-              <li key={a.id} className="border-l-2 border-brand-200 pl-3 py-1.5">
+              <li key={a.id} className="border-l-2 border-indigo-200 pl-3 py-1.5">
                 <p className="text-sm font-medium">{user?.full_name ?? project?.name ?? "Unassigned"}</p>
                 <p className="text-xs text-slate-500">
                   {formatDate(a.assigned_date)}

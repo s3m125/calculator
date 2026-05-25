@@ -92,7 +92,7 @@ export default async function MaintenancePage() {
                 <tr key={r.id}>
                   <td>
                     {r.asset_uuid ? (
-                      <Link href={`/assets/${r.asset_uuid}`} className="font-medium hover:text-brand-600">
+                      <Link href={`/assets/${r.asset_uuid}`} className="font-medium hover:text-indigo-600">
                         {r.asset_name}
                       </Link>
                     ) : (
@@ -107,7 +107,7 @@ export default async function MaintenancePage() {
                   <td className="text-right tabular-nums">{formatIDR(r.cost)}</td>
                   <td><StatusBadge status={r.status} /></td>
                   <td>
-                    <Link href={`/maintenance/${r.id}`} className="text-xs text-brand-600 hover:underline">
+                    <Link href={`/maintenance/${r.id}`} className="text-xs text-indigo-600 hover:underline">
                       Open
                     </Link>
                   </td>

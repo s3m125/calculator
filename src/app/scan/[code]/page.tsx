@@ -20,10 +20,10 @@ export default async function PublicScanPage({ params }: { params: { code: strin
   if (!asset) notFound();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 to-white p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white p-4 flex items-center justify-center">
       <div className="w-full max-w-md card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="h-10 w-10 rounded-lg bg-brand-600 text-white flex items-center justify-center">
+          <div className="h-10 w-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
             <Boxes className="h-5 w-5" />
           </div>
           <div>

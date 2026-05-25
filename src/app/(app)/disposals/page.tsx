@@ -56,7 +56,7 @@ export default async function DisposalsPage() {
                   <tr key={r.id}>
                     <td>
                       {a?.id ? (
-                        <Link href={`/assets/${a.id}`} className="font-medium hover:text-brand-600">
+                        <Link href={`/assets/${a.id}`} className="font-medium hover:text-indigo-600">
                           {a.name}
                         </Link>
                       ) : (

@@ -90,7 +90,7 @@ export function AssignmentForm({ assets, users, projects, locations, preselectAs
               onClick={() => setType(t)}
               className={
                 "px-3 py-1.5 rounded-lg text-sm font-medium " +
-                (type === t ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")
+                (type === t ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")
               }
             >
               {t[0].toUpperCase() + t.slice(1)}
