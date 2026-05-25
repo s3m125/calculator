@@ -1,13 +1,26 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+// Edge-safe middleware: NO Supabase client, NO env var reads, NO network
+// calls. Just a fast cookie check that redirects unauthenticated users to
+// /login. Real auth validation happens server-side in (app)/layout.tsx via
+// getProfile(), so an invalid/expired cookie is still rejected there.
+//
+// Why this is split:
+// - createServerClient + auth.getUser() works in Node but is brittle in
+//   Vercel's Edge runtime (MIDDLEWARE_INVOCATION_FAILED). Removing it
+//   makes the middleware deterministic and dependency-free.
 import { NextResponse, type NextRequest } from "next/server";
 
-type CookieToSet = { name: string; value: string; options?: CookieOptions };
+const LOCAL_SESSION_COOKIE = "gsi-session";
 
-const SESSION_COOKIE = "gsi-session";
-
-function isLocalMode() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return !url || url.includes("placeholder") || url.includes("localhost-local");
+function hasAnySessionCookie(request: NextRequest): boolean {
+  if (request.cookies.get(LOCAL_SESSION_COOKIE)?.value) return true;
+  // Supabase-ssr stores its session as sb-<project-ref>-auth-token (and
+  // sometimes split chunks like sb-<ref>-auth-token.0/.1).
+  for (const c of request.cookies.getAll()) {
+    if (c.name.startsWith("sb-") && c.name.includes("-auth-token") && c.value) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export async function updateSession(request: NextRequest) {
@@ -16,54 +29,23 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/scan") ||
     path.startsWith("/api/public") ||
-    path.startsWith("/api/local"); // local auth endpoints must be reachable while logged out
+    path.startsWith("/api/local") ||
+    path.startsWith("/api/auth"); // future-proof for Supabase auth callbacks
 
-  // Local mode: check our own session cookie
-  if (isLocalMode()) {
-    const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value;
-    if (!hasSession && !isPublic) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("next", path);
-      return NextResponse.redirect(loginUrl);
-    }
-    if (hasSession && path === "/login") {
-      const home = request.nextUrl.clone();
-      home.pathname = "/dashboard";
-      return NextResponse.redirect(home);
-    }
-    return NextResponse.next({ request });
-  }
+  const hasSession = hasAnySessionCookie(request);
 
-  // Real Supabase mode
-  let response = NextResponse.next({ request });
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return response;
-
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() { return request.cookies.getAll(); },
-      setAll(cookiesToSet: CookieToSet[]) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-      },
-    },
-  });
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user && !isPublic) {
+  if (!hasSession && !isPublic) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", path);
     return NextResponse.redirect(loginUrl);
   }
-  if (user && path === "/login") {
+
+  if (hasSession && path === "/login") {
     const home = request.nextUrl.clone();
-    home.pathname = "/dashboard";
+    home.pathname = "/dashboard-v2";
     return NextResponse.redirect(home);
   }
-  return response;
+
+  return NextResponse.next({ request });
 }
