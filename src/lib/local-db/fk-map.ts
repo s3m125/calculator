@@ -1,7 +1,12 @@
 // Foreign-key map cached at init. Lets us resolve supabase-js join syntax
 // `alias:fk_col(cols)` and `alias:target_table(cols)` to actual SQL JOINs.
 import "server-only";
-import type { PGlite } from "@electric-sql/pglite";
+
+// PGlite is type-only here — kept as a structural interface so we don't
+// pull in the package at build time (matters for Vercel cloud builds).
+interface PGlite {
+  query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+}
 
 export interface FkEntry {
   source_table: string;

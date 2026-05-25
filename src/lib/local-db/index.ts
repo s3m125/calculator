@@ -1,14 +1,23 @@
 // Singleton pglite instance + first-run initialization.
-// Runs server-side only. Persists to ./.local-db.
+// Runs server-side only. Only loaded when isLocalMode() is true — pglite is
+// imported dynamically inside getDb() so cloud builds (Vercel) never pull in
+// the WASM payload.
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import bcrypt from "bcryptjs";
-import { PGlite } from "@electric-sql/pglite";
+
+// PGlite is intentionally not imported statically. Use `any` to avoid a
+// top-level type dependency that webpack would resolve at build time.
+type PGliteDb = {
+  waitReady: Promise<unknown>;
+  query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+  exec(sql: string): Promise<unknown>;
+};
 
 declare global {
   // eslint-disable-next-line no-var
-  var __pglite__: PGlite | undefined;
+  var __pglite__: PGliteDb | undefined;
   // eslint-disable-next-line no-var
   var __pgliteReady__: Promise<void> | undefined;
 }
@@ -45,7 +54,7 @@ async function readSqlFile(name: string): Promise<string> {
   return await fs.readFile(p, "utf-8");
 }
 
-async function bootstrap(db: PGlite) {
+async function bootstrap(db: PGliteDb) {
   // 1. Schema
   await db.exec(await readSqlFile("schema.sql"));
 
@@ -80,18 +89,20 @@ async function bootstrap(db: PGlite) {
   }
 }
 
-async function createDb(): Promise<PGlite> {
+async function createDb(): Promise<PGliteDb> {
   // In-memory mode — seeds reload on every server restart. Avoids the
   // file:// URL-arg issue on newer Node versions while keeping iteration
   // fast. Data created during a dev session persists until restart.
   void DATA_DIR;
-  const db = new PGlite();
+  // Dynamic import keeps pglite out of the cloud build.
+  const { PGlite } = await import("@electric-sql/pglite");
+  const db = new PGlite() as unknown as PGliteDb;
   await db.waitReady;
   await bootstrap(db);
   return db;
 }
 
-export async function getDb(): Promise<PGlite> {
+export async function getDb(): Promise<PGliteDb> {
   if (globalThis.__pglite__) {
     if (globalThis.__pgliteReady__) await globalThis.__pgliteReady__;
     return globalThis.__pglite__;

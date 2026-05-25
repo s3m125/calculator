@@ -10,8 +10,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
-  // pglite ships a WASM build that loads via `new URL(...)` — webpack must
-  // not bundle it or Node's fs.readFile rejects the polyfilled URL instance.
+  // pglite is only required for *local* mode (no Supabase env vars set).
+  // We mark it external so its WASM payload isn't bundled — important for
+  // both Node's fs.readFile URL strictness AND for Vercel's function size.
+  // In cloud mode (real Supabase URL set), pglite is dynamically imported
+  // and never loaded, so this setting is harmless either way.
   experimental: {
     serverComponentsExternalPackages: ["@electric-sql/pglite"],
   },
