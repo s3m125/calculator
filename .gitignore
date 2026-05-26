@@ -50,3 +50,8 @@ supabase/.temp
 # pglite local mode data
 /.local-db
 
+# Basecamp credentials (alternative location besides .env.local)
+/.basecamp
+/.basecamp/
+.basecamp/creds.json
+
