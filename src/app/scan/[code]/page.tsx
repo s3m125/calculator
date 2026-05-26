@@ -13,7 +13,11 @@ export default async function PublicScanPage({ params }: { params: { code: strin
   const supabase = createClient();
   const { data: asset } = await supabase
     .from("v_asset_list")
-    .select("*")
+    // Trim: only the fields we actually render below.
+    .select(
+      "id, asset_id, name, status, category_name, location_name, assigned_to_name, " +
+      "brand, model, serial_number, warranty_end, purchase_price",
+    )
     .or(`qr_code.eq.${params.code},asset_id.eq.${params.code}`)
     .maybeSingle();
 

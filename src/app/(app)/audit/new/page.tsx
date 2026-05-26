@@ -1,19 +1,18 @@
-import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { NewAuditForm } from "@/components/audit/NewAuditForm";
+import { getLocations, getDepartments } from "@/lib/lookups";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewAuditPage() {
-  const supabase = createClient();
-  const [locs, deps] = await Promise.all([
-    supabase.from("asset_locations").select("id, name").order("name"),
-    supabase.from("departments").select("id, name").order("name"),
-  ]);
+  const [locs, deps] = await Promise.all([getLocations(), getDepartments()]);
   return (
     <>
       <PageHeader title="New Audit" description="Create a stock opname session." />
-      <NewAuditForm locations={locs.data ?? []} departments={deps.data ?? []} />
+      <NewAuditForm
+        locations={locs.map((l) => ({ id: l.id, name: l.name }))}
+        departments={deps.map((d) => ({ id: d.id, name: d.name }))}
+      />
     </>
   );
 }

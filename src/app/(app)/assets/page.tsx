@@ -8,6 +8,7 @@ import { CategoryThumb } from "@/components/ui/CategoryThumb";
 import { AssetFilters } from "@/components/assets/AssetFilters";
 import { ExportButton } from "@/components/ExportButton";
 import { formatDate, formatIDR } from "@/lib/utils";
+import { getCategoriesLite, getLocations, getDepartments } from "@/lib/lookups";
 import type { AssetListRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -31,12 +32,28 @@ export default async function AssetsPage({
     profile?.role?.code ?? "",
   );
 
-  let query = supabase.from("v_asset_list").select("*").order("created_at", { ascending: false }).limit(500);
+  // Trimmed list query (~12 cols) — used by the table & filters.
+  let query = supabase
+    .from("v_asset_list")
+    .select(
+      "id, asset_id, name, serial_number, brand, model, status, condition, " +
+      "category_name, category_code, location_name, department_name, project_name, " +
+      "assigned_to_name, supplier_name, purchase_price, book_value, warranty_end, created_at",
+    )
+    .order("created_at", { ascending: false })
+    .limit(500);
 
   if (searchParams.status)     query = query.eq("status", searchParams.status);
   if (searchParams.category)   query = query.eq("category_code", searchParams.category);
 
-  const { data: raw } = await query;
+  // Run the list query in parallel with the cached filter-option lookups
+  // so the round trip to Supabase is fully overlapped.
+  const [{ data: raw }, cats, locs, deps] = await Promise.all([
+    query,
+    getCategoriesLite(),
+    getLocations(),
+    getDepartments(),
+  ]);
   let rows = ((raw ?? []) as unknown as AssetListRow[]);
 
   if (searchParams.q) {
@@ -52,13 +69,6 @@ export default async function AssetsPage({
   }
   if (searchParams.location) rows = rows.filter((a) => a.location_name === searchParams.location);
   if (searchParams.department) rows = rows.filter((a) => a.department_name === searchParams.department);
-
-  // Filter options
-  const [{ data: cats }, { data: locs }, { data: deps }] = await Promise.all([
-    supabase.from("asset_categories").select("code, name").order("name"),
-    supabase.from("asset_locations").select("name").order("name"),
-    supabase.from("departments").select("name").order("name"),
-  ]);
 
   return (
     <>
@@ -97,9 +107,9 @@ export default async function AssetsPage({
       </PageHeader>
 
       <AssetFilters
-        categories={(cats ?? []).map((c) => ({ value: c.code, label: c.name }))}
-        locations={(locs ?? []).map((l) => l.name)}
-        departments={(deps ?? []).map((d) => d.name)}
+        categories={cats.map((c) => ({ value: c.code, label: c.name }))}
+        locations={locs.map((l) => l.name)}
+        departments={deps.map((d) => d.name)}
         initial={searchParams as Record<string, string | undefined>}
       />
 

@@ -32,79 +32,98 @@ export type DashboardData = {
   }[];
 };
 
+// Only the columns we actually display / aggregate. Down from 25+ cols on
+// v_asset_list to 11 — meaningful payload reduction on the cross-region
+// (Singapore → Singapore) hop.
+const ASSET_COLS =
+  "id, asset_id, name, status, category_name, location_name, purchase_price, book_value, warranty_end, created_at, qr_code, serial_number";
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
 export async function getDashboardData(): Promise<DashboardData> {
   const supabase = createClient();
 
-  const [{ data: assets }, { data: categories }] = await Promise.all([
+  // Single Promise.all — all six queries fire in parallel. Previously this
+  // was three sequential round-trips (assets+cats → overdue → activity x3),
+  // which on a Singapore→Singapore link still costs ~150-300ms per await.
+  const [
+    { data: assets },
+    { data: categories },
+    { data: overdueAssignments },
+    { data: assn },
+    { data: tr },
+    { data: mt },
+  ] = await Promise.all([
     supabase
       .from("v_asset_list")
-      .select("*")
-      .order("created_at", { ascending: false }),
+      .select(ASSET_COLS)
+      .order("created_at", { ascending: false })
+      .limit(500),
     supabase.from("asset_categories").select("id, name"),
+    supabase
+      .from("asset_assignments")
+      .select("id, due_date, assets:asset_id(name, asset_id), user:assigned_to(full_name)")
+      .eq("status", "active")
+      .not("due_date", "is", null)
+      .lt("due_date", todayIso())
+      .order("due_date", { ascending: true })
+      .limit(8),
+    supabase
+      .from("asset_assignments")
+      .select("id, created_at, assets:asset_id(name), user:assigned_to(full_name)")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("asset_transfers")
+      .select("id, created_at, assets:asset_id(name), from:from_location_id(name), to:to_location_id(name)")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("asset_maintenance")
+      .select("id, created_at, description, assets:asset_id(name), status")
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   const rows: AssetListRow[] = (assets ?? []) as unknown as AssetListRow[];
 
-  const totals = rows.reduce(
-    (acc, a) => {
-      acc.total += 1;
-      acc.totalValue += Number(a.purchase_price ?? 0);
-      acc.bookValue += Number(a.book_value ?? 0);
-      switch (a.status) {
-        case "available":
-          acc.available += 1;
-          break;
-        case "assigned":
-          acc.assigned += 1;
-          break;
-        case "borrowed":
-          acc.borrowed += 1;
-          break;
-        case "in_repair":
-          acc.inRepair += 1;
-          break;
-        case "lost":
-        case "damaged":
-          acc.lostDamaged += 1;
-          break;
-        case "disposed":
-          acc.disposed += 1;
-          break;
-      }
-      return acc;
-    },
-    {
-      total: 0,
-      totalValue: 0,
-      bookValue: 0,
-      available: 0,
-      assigned: 0,
-      borrowed: 0,
-      inRepair: 0,
-      lostDamaged: 0,
-      disposed: 0,
-    },
-  );
-
-  const catMap = new Map<string, number>();
+  // Totals + byStatus in a single pass — was previously a reduce + a
+  // separate filter-per-status loop.
+  const totals = {
+    total: 0, totalValue: 0, bookValue: 0,
+    available: 0, assigned: 0, borrowed: 0, inRepair: 0,
+    lostDamaged: 0, disposed: 0,
+  };
+  const statusCounts: Record<string, number> = {};
+  const catCounts = new Map<string, number>();
   for (const a of rows) {
+    totals.total += 1;
+    totals.totalValue += Number(a.purchase_price ?? 0);
+    totals.bookValue += Number(a.book_value ?? 0);
+    statusCounts[a.status] = (statusCounts[a.status] ?? 0) + 1;
+    switch (a.status) {
+      case "available":  totals.available  += 1; break;
+      case "assigned":   totals.assigned   += 1; break;
+      case "borrowed":   totals.borrowed   += 1; break;
+      case "in_repair":  totals.inRepair   += 1; break;
+      case "lost":
+      case "damaged":    totals.lostDamaged += 1; break;
+      case "disposed":   totals.disposed   += 1; break;
+    }
     const key = a.category_name ?? "Uncategorized";
-    catMap.set(key, (catMap.get(key) ?? 0) + 1);
+    catCounts.set(key, (catCounts.get(key) ?? 0) + 1);
   }
-  // Ensure every category is represented (even 0)
-  for (const c of categories ?? []) {
-    if (!catMap.has(c.name)) catMap.set(c.name, 0);
-  }
-  const byCategory = Array.from(catMap, ([name, value]) => ({ name, value })).sort(
-    (a, b) => b.value - a.value,
-  );
 
-  const byStatus = (["available", "assigned", "borrowed", "in_repair", "damaged", "lost", "disposed"] as const).map(
-    (s) => ({
-      name: s.replace("_", " "),
-      value: rows.filter((a) => a.status === s).length,
-    }),
-  );
+  // Ensure every category surface in the donut even with 0 assets.
+  for (const c of categories ?? []) {
+    if (!catCounts.has(c.name)) catCounts.set(c.name, 0);
+  }
+  const byCategory = Array.from(catCounts, ([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const byStatus = (
+    ["available", "assigned", "borrowed", "in_repair", "damaged", "lost", "disposed"] as const
+  ).map((s) => ({ name: s.replace("_", " "), value: statusCounts[s] ?? 0 }));
 
   const recentAssets = rows.slice(0, 8);
 
@@ -116,19 +135,9 @@ export async function getDashboardData(): Promise<DashboardData> {
       return diff > -7 && diff <= 60;
     })
     .sort(
-      (a, b) =>
-        new Date(a.warranty_end ?? 0).getTime() - new Date(b.warranty_end ?? 0).getTime(),
+      (a, b) => new Date(a.warranty_end ?? 0).getTime() - new Date(b.warranty_end ?? 0).getTime(),
     )
     .slice(0, 6);
-
-  const { data: overdueAssignments } = await supabase
-    .from("asset_assignments")
-    .select("id, due_date, assets:asset_id(name, asset_id), user:assigned_to(full_name)")
-    .eq("status", "active")
-    .not("due_date", "is", null)
-    .lt("due_date", new Date().toISOString().slice(0, 10))
-    .order("due_date", { ascending: true })
-    .limit(8);
 
   const overdueReturns =
     (overdueAssignments ?? []).map((a) => {
@@ -141,31 +150,9 @@ export async function getDashboardData(): Promise<DashboardData> {
         user_name: user?.full_name ?? null,
         due_date: a.due_date as string | null,
       };
-    }) ?? [];
-
-  // Activity feed: most-recent assignments / transfers / maintenance
-  const [{ data: assn }, { data: tr }, { data: mt }] = await Promise.all([
-    supabase
-      .from("asset_assignments")
-      .select("id, created_at, assets:asset_id(name), user:assigned_to(full_name)")
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("asset_transfers")
-      .select(
-        "id, created_at, assets:asset_id(name), from:from_location_id(name), to:to_location_id(name)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("asset_maintenance")
-      .select("id, created_at, description, assets:asset_id(name), status")
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ]);
+    });
 
   type AssetRel = { name: string } | null;
-
   const activity: DashboardData["recentActivity"] = [];
   for (const a of assn ?? []) {
     const asset = a.assets as unknown as AssetRel;
@@ -200,12 +187,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   activity.sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime());
 
   return {
-    totals,
-    byCategory,
-    byStatus,
-    recentAssets,
-    warrantyExpiring,
-    overdueReturns,
+    totals, byCategory, byStatus,
+    recentAssets, warrantyExpiring, overdueReturns,
     recentActivity: activity.slice(0, 10),
   };
 }
