@@ -4,24 +4,51 @@ import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatIDR } from "@/lib/utils";
 import { Boxes, ArrowRight } from "lucide-react";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+// Asset IDs follow `PREFIX-YYYY-NNNN`; QR codes mirror that. Anything else is
+// not a real asset code and we refuse to look it up — defence against filter
+// injection through the route param.
+const VALID_CODE = /^[A-Z0-9]{2,6}-\d{4}-\d{4}$/;
 
 // Public-ish QR landing page — reachable without login (middleware excludes /scan).
 // Anonymous visitors see basic info; signed-in users see a link into the app.
 export default async function PublicScanPage({ params }: { params: { code: string } }) {
+  const code = params.code;
+  if (!VALID_CODE.test(code)) notFound();
+
   const supabase = createClient();
-  const { data: asset } = await supabase
+  // Two parameterised lookups instead of one stringly-built .or() — safer
+  // and works whether the code is the qr_code or the asset_id.
+  const { data: byQr } = await supabase
     .from("v_asset_list")
-    // Trim: only the fields we actually render below.
     .select(
       "id, asset_id, name, status, category_name, location_name, assigned_to_name, " +
       "brand, model, serial_number, warranty_end, purchase_price",
     )
-    .or(`qr_code.eq.${params.code},asset_id.eq.${params.code}`)
+    .eq("qr_code", code)
     .maybeSingle();
+  const asset =
+    byQr ??
+    (
+      await supabase
+        .from("v_asset_list")
+        .select(
+          "id, asset_id, name, status, category_name, location_name, assigned_to_name, " +
+          "brand, model, serial_number, warranty_end, purchase_price",
+        )
+        .eq("asset_id", code)
+        .maybeSingle()
+    ).data;
 
   if (!asset) notFound();
+
+  // Hide commercial-sensitive fields from anonymous visitors. A logged-in
+  // user with capability `asset.view` can still see them via /assets/<id>.
+  const sessionUser = await getSessionUser();
+  const isAnonymous = !sessionUser;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white p-4 flex items-center justify-center">
@@ -47,7 +74,9 @@ export default async function PublicScanPage({ params }: { params: { code: strin
           <Row label="Brand / Model">{asset.brand} {asset.model}</Row>
           <Row label="Serial">{asset.serial_number ?? "-"}</Row>
           <Row label="Warranty">{formatDate(asset.warranty_end)}</Row>
-          <Row label="Purchase Value">{formatIDR(asset.purchase_price)}</Row>
+          {!isAnonymous && (
+            <Row label="Purchase Value">{formatIDR(asset.purchase_price)}</Row>
+          )}
         </div>
 
         <Link

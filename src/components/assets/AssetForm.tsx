@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 
 type Option = { id: string; name: string };
 type Category = Option & { prefix: string; useful_life_years: number };
@@ -43,6 +44,16 @@ export function AssetForm({
     setError(null);
 
     const form = new FormData(e.currentTarget);
+
+    // Cross-field date validation — warranty_end must be ≥ warranty_start.
+    const ws = (form.get("warranty_start") as string) || "";
+    const we = (form.get("warranty_end") as string) || "";
+    if (ws && we && we < ws) {
+      setError("Warranty End cannot be earlier than Warranty Start.");
+      setSubmitting(false);
+      return;
+    }
+
     const payload: Record<string, unknown> = {
       name: form.get("name"),
       category_id: form.get("category_id") || null,
@@ -159,24 +170,10 @@ export function AssetForm({
         <input name="invoice_number" defaultValue={v("invoice_number") as string} className="input" />
       </Field>
       <Field label="Purchase Price (IDR)">
-        <input
-          name="purchase_price"
-          type="number"
-          min={0}
-          step="any"
-          defaultValue={v("purchase_price") as number}
-          className="input"
-        />
+        <CurrencyInput name="purchase_price" defaultValue={v("purchase_price") as number} />
       </Field>
       <Field label="Book Value (IDR)">
-        <input
-          name="book_value"
-          type="number"
-          min={0}
-          step="any"
-          defaultValue={v("book_value") as number}
-          className="input"
-        />
+        <CurrencyInput name="book_value" defaultValue={v("book_value") as number} />
       </Field>
 
       <Field label="Location">

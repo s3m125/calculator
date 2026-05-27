@@ -42,18 +42,25 @@ export function MaintenanceStatusButtons({
         const idx = ORDER.indexOf(status);
         const sIdx = ORDER.indexOf(s);
         const isCurrent = s === status;
+        // Only allow advancing to the NEXT step (or staying), never skip
+        // ahead and never go back. Past states are visibly muted.
+        const inPast = sIdx < idx;
+        const tooFarAhead = sIdx > idx + 1;
+        const disabled = isCurrent || loading !== null || inPast || tooFarAhead;
         return (
           <button
             key={s}
             onClick={() => setStatus(s)}
-            disabled={isCurrent || loading !== null}
+            disabled={disabled}
             className={
               "px-3 py-1.5 rounded-lg text-sm font-medium transition " +
               (isCurrent
                 ? "bg-indigo-600 text-white"
-                : sIdx < idx
-                  ? "bg-slate-100 text-slate-500"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200")
+                : inPast
+                  ? "bg-slate-100 text-slate-500 cursor-not-allowed"
+                  : tooFarAhead
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200")
             }
           >
             {loading === s ? "..." : s.replace("_", " ")}

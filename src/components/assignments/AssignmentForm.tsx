@@ -25,6 +25,15 @@ export function AssignmentForm({ assets, users, projects, locations, preselectAs
     setSubmitting(true);
     setError(null);
     const f = new FormData(e.currentTarget);
+
+    const assigned = (f.get("assigned_date") as string) || "";
+    const due = (f.get("due_date") as string) || "";
+    if (assigned && due && due < assigned) {
+      setError("Due date cannot be earlier than the assigned date.");
+      setSubmitting(false);
+      return;
+    }
+
     const asset_id = f.get("asset_id") as string;
     const payload: Record<string, unknown> = {
       asset_id,

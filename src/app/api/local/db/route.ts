@@ -1,7 +1,10 @@
-// Bridge for browser-side mutations in local mode. Re-runs the same
-// query-builder pipeline on the server using the user's cookie auth.
+// Bridge for browser-side mutations in LOCAL MODE only. In cloud mode this
+// endpoint MUST return 404 — otherwise it's an unauthenticated read/write
+// surface against the pglite shim (which is never properly initialised on
+// Vercel anyway, but the route still attempts to spin it up).
 import { NextResponse } from "next/server";
 import { from as localFrom } from "@/lib/local-db/query-builder";
+import { isLocalMode } from "@/lib/local-db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +30,9 @@ interface OpSpec {
 }
 
 export async function POST(req: Request) {
+  if (!isLocalMode()) {
+    return new NextResponse(null, { status: 404 });
+  }
   const spec = (await req.json()) as OpSpec;
   let qb = localFrom(spec.table);
 

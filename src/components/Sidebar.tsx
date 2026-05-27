@@ -29,8 +29,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
-  { href: "/dashboard-v2", label: "Dashboard v2", icon: LayoutDashboard },
+  { href: "/dashboard-v2", label: "Dashboard",    icon: LayoutDashboard },
   { href: "/assets",       label: "Assets",       icon: Package, capability: "asset.view" },
   { href: "/assignments",  label: "Assignments",  icon: UserCog, capability: "assignment.manage" },
   { href: "/transfers",    label: "Transfers",    icon: ArrowLeftRight, capability: "transfer.manage" },

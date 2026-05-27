@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { signIn, SESSION_COOKIE } from "@/lib/local-db/auth";
+import { isLocalMode } from "@/lib/local-db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  if (!isLocalMode()) {
+    return new NextResponse(null, { status: 404 });
+  }
   const { email, password } = await req.json();
   if (!email || !password) {
     return NextResponse.json({ error: "Missing credentials" }, { status: 400 });

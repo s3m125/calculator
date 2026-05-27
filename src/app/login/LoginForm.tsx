@@ -5,11 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
 
+// Only allow same-origin internal paths as redirect targets.
+// Prevents `?next=https://evil.com` phishing redirects.
+function safeNext(raw: string | null): string {
+  if (!raw) return "/dashboard-v2";
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/dashboard-v2";
+}
+
 export function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
-  const [email, setEmail] = useState("admin@gsi.local");
-  const [password, setPassword] = useState("Gsi#Demo2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
@@ -22,8 +30,7 @@ export function LoginForm() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      const next = search.get("next") || "/dashboard";
-      router.push(next);
+      router.push(safeNext(search.get("next")));
       router.refresh();
     } catch (err: unknown) {
       const message =

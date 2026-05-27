@@ -80,7 +80,13 @@ export default async function AuditDetailPage({ params }: { params: { id: string
             ["notes", "Notes"],
           ]}
         />
-        {audit.status !== "completed" && <AuditCompleteButton id={audit.id as string} />}
+        {audit.status !== "completed" && (
+          <AuditCompleteButton
+            id={audit.id as string}
+            unscannedCount={notYetScanned.length}
+            scope={{ locationId: loc?.id ?? null, departmentId: dept?.id ?? null }}
+          />
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">

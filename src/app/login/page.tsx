@@ -20,11 +20,13 @@ export default function LoginPage() {
         <Suspense fallback={<div className="text-sm text-slate-500">Loading...</div>}>
           <LoginForm />
         </Suspense>
-        <div className="mt-6 text-xs text-slate-500 rounded-lg bg-slate-50 border border-slate-200 p-3">
-          <p className="font-medium text-slate-700 mb-1">Demo accounts</p>
-          <p>admin@gsi.local · finance@gsi.local · pm@gsi.local · tech1@gsi.local · ceo@gsi.local</p>
-          <p className="mt-1">Password: <span className="font-mono">Gsi#Demo2026</span></p>
-        </div>
+        {process.env.NEXT_PUBLIC_SHOW_DEMO_CREDS === "true" && (
+          <div className="mt-6 text-xs text-slate-500 rounded-lg bg-slate-50 border border-slate-200 p-3">
+            <p className="font-medium text-slate-700 mb-1">Demo accounts</p>
+            <p>admin@gsi.local · finance@gsi.local · pm@gsi.local · tech1@gsi.local · ceo@gsi.local</p>
+            <p className="mt-1">Password: <span className="font-mono">Gsi#Demo2026</span></p>
+          </div>
+        )}
       </div>
     </div>
   );
